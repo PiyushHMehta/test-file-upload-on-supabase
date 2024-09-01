@@ -9,37 +9,43 @@ import 'react-toastify/dist/ReactToastify.css';
 const NewItemForm = () => {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
-    const [image, setImage] = useState('');
+    const [images, setImages] = useState([]);
 
     async function handleImageUpload(e) {
-        e.preventDefault();
-        const file = e.target.files[0];
-        if (!file) return; // No file selected
+        const files = e.target.files;
+        if (!files.length) return; // No files selected
 
-        // Upload the file to Supabase storage
-        const { data, error } = await supabaseClient.storage.from('images').upload(`public/${file.name}`, file);
-        if (error) {
-            console.error('Upload error:', error);
-            toast.error('Failed to upload image');
-            return;
+        const uploadedImages = [];
+
+        for (const file of files) {
+            // Upload the file to Supabase storage
+            const { data, error } = await supabaseClient.storage.from('images').upload(`public/${file.name}`, file);
+            if (error) {
+                console.error('Upload error:', error);
+                toast.error('Failed to upload image');
+                return;
+            }
+
+            // Generate the public URL
+            const { data: publicUrlData } = supabaseClient.storage.from('images').getPublicUrl(`public/${file.name}`);
+            if (publicUrlData) {
+                uploadedImages.push(publicUrlData.publicUrl);
+                console.log('Public URL:', publicUrlData.publicUrl);
+            } else {
+                console.error('Failed to retrieve public URL');
+                toast.error('Failed to retrieve image URL');
+            }
         }
 
-        // Generate the public URL
-        const { data: publicUrlData } = supabaseClient.storage.from('images').getPublicUrl(`public/${file.name}`);
-        if (publicUrlData) {
-            setImage(publicUrlData.publicUrl);
-            console.log('Public URL:', publicUrlData.publicUrl);
-        } else {
-            console.error('Failed to retrieve public URL');
-            toast.error('Failed to retrieve image URL');
-        }
+        // Update the images state with the new array of image URLs
+        setImages((prevImages) => [...prevImages, ...uploadedImages]);
     }
 
     async function handleFormSubmit(e) {
         e.preventDefault();
         const res = await fetch('/api/items', {
             method: 'POST',
-            body: JSON.stringify({ name, price, image }),
+            body: JSON.stringify({ name, price, images }),
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -52,7 +58,7 @@ const NewItemForm = () => {
             toast.success('Item created successfully');
             setName('');
             setPrice('');
-            setImage('');
+            setImages([]);
         }
     }
 
@@ -85,7 +91,7 @@ const NewItemForm = () => {
                 </div>
                 <div>
                     <input
-                        type="file"
+                        type="file" multiple
                         onChange={handleImageUpload}
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-300 file:rounded-md file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />

@@ -5,7 +5,7 @@ const { Schema } = mongoose; // Destructure Schema from mongoose
 const ItemSchema = new Schema({
     name: { type: String, required: true }, // Add validation if needed
     price: { type: String, required: true }, // Consider using a number type if price should be numeric
-    image: { type: String, required: false } // Optional field
+    images: { type: [String], required: false } // Optional field
 });
 
 // Create or get the Item model
